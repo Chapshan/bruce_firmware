@@ -7,8 +7,90 @@
 #include <JPEGDecoder.h>
 #include <interface.h> //for charging ischarging to print charging indicator
 #include <memory>
+#ifdef JC3248W535_BOARD
+  // Arduino_GFX driver for JC3248W535 (AXS15231B QSPI)
+  #include <Arduino_GFX_Library.h>
+#elif defined(HAS_TFT)
+  #include <TFT_eSPI.h>
+#elif defined(HAS_LOVYANGFX)
+  #include <Lovyangfx.hpp>
+#endif
 
 #define MAX_MENU_SIZE (int)(tftHeight / 25)
+
+#ifdef JC3248W535_BOARD
+  // Create Quad-SPI Data Bus on JC3248W535 Pins
+  Arduino_DataBus *bus = new Arduino_ESP32QSPI(
+      TFT_CS,   // 45
+      TFT_SCK,  // 47
+      TFT_D0,   // 21
+      TFT_D1,   // 48
+      TFT_D2,   // 40
+      TFT_D3    // 39
+  );
+
+  // Instantiate AXS15231B Driver
+  Arduino_AXS15231B *gfx_driver = new Arduino_AXS15231B(
+      bus,
+      GFX_NOT_DEFINED, // Reset pin
+      1,               // Rotation (1 = Landscape)
+      false            // IPS panel flag
+  );
+#elif defined(HAS_TFT)
+  TFT_eSPI tft = TFT_eSPI();
+#endif
+
+void setupDisplay() {
+#ifdef JC3248W535_BOARD
+    // Turn on backlight GPIO
+    pinMode(TFT_BL, OUTPUT);
+    digitalWrite(TFT_BL, HIGH);
+
+    // Initialize display panel
+    if (gfx_driver->begin()) {
+        gfx_driver->fillScreen(BLACK);
+        gfx_driver->setTextColor(WHITE);
+    }
+#elif defined(HAS_TFT)
+    tft.init();
+    tft.setRotation(1);
+    tft.fillScreen(TFT_BLACK);
+#endif
+}
+
+void setBrightness(uint8_t brightness) {
+#if defined(JC3248W535_BOARD)
+    // Control backlight intensity on GPIO 1 via PWM
+    analogWrite(TFT_BL, brightness);
+#elif defined(TFT_BL)
+    analogWrite(TFT_BL, brightness);
+#endif
+}
+
+void clearScreen() {
+#ifdef JC3248W535_BOARD
+    if (gfx_driver) gfx_driver->fillScreen(BLACK);
+#elif defined(HAS_TFT)
+    tft.fillScreen(TFT_BLACK);
+#endif
+}
+
+void drawHeader(const char* title) {
+#ifdef JC3248W535_BOARD
+    if (!gfx_driver) return;
+    gfx_driver->fillRect(0, 0, 320, 30, BLUE);
+    gfx_driver->setCursor(10, 5);
+    gfx_driver->setTextColor(WHITE);
+    gfx_driver->setTextSize(2);
+    gfx_driver->print(title);
+#elif defined(HAS_TFT)
+    tft.fillRect(0, 0, tft.width(), 30, TFT_BLUE);
+    tft.setCursor(10, 5);
+    tft.setTextColor(TFT_WHITE);
+    tft.drawString(title, 10, 5);
+#endif
+}
+
 
 // Send the ST7789 into or out of sleep mode
 void panelSleep(bool on) {
