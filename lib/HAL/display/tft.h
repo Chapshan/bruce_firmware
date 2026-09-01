@@ -1,6 +1,6 @@
 #ifndef LIB_HAL_DISPLAY_TFT_H
 #define LIB_HAL_DISPLAY_TFT_H
-#include <pins_arduino.h>
+#include <Arduino.h>
 
 #if !defined(USE_ARDUINO_GFX) && !defined(USE_LOVYANGFX) && !defined(USE_TFT_ESPI) && !defined(USE_M5GFX)
 #define USE_TFT_ESPI
